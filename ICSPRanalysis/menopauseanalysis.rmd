@@ -1,0 +1,61 @@
+```{r}
+library(readr)
+library(dplyr)
+data <- read_tsv('/Users/wittphillips/all/igem/ICSPRanalysis/32961-0001-Data.tsv', show_col_types = FALSE)
+
+head(data)
+```
+
+
+```{r}
+dim(data)
+#head(data)
+#names(data)
+
+df <- data.frame(data$RACE, data$STATUS10, data$AGE10, #general info
+                 #combine below into single access metric
+                 data$ESTROG110, data$ESTROG210, # estrogen pills
+                 data$ESTRNJ110, data$ESTRNJ210, #estrogen injections
+                 data$COMBIN110, data$COMBIN210, #estrogen/ progestin combo
+                 data$OHRM_110,  data$OHRM_210, #other hormone treatment
+                 data$OHRM_310,  data$OHRM_410
+# reason for taking
+# REDUHAR10
+# OSTEOPO10
+# MENOSYM10
+# YOUNGLK10
+# HCPADVI10
+# FRNADVI1O
+# IMPRMEM1O
+# REGPERI10)
+                 ) 
+df <- df %>% 
+  rename("Race" = "data.RACE"
+         , "MenoStatus" = "data.STATUS10"
+         , "Age" = "data.AGE10"
+         , "Estr110" = "data.ESTROG110"
+         , "Estr210" = "data.ESTROG210"
+         , "EstrInjec110" = "data.ESTRNJ110"
+         , "EstrInjec210" = "data.ESTRNJ210"
+         , "EstrProgComb110" = "data.COMBIN110"
+         , "EstrProgComb210" = "data.COMBIN210"
+         , "OtherHormone1" = "data.OHRM_110"
+         , "OtherHormone2" = "data.OHRM_210"
+         , "OtherHormone3" = "data.OHRM_310"
+         , "OtherHormone4" = "data.OHRM_410"
+         
+         )
+
+# 1: Black/African American
+# 2: Chinese/Chinese American
+# 3: Japanese/Japanese American 
+# 4: Caucasian/ White Non-Hispanic 
+# 5: Hispanic
+
+colnames
+head(df)
+```
+```{r}
+table(df$Estr110, df$Race)
+```
+
