@@ -1,65 +1,39 @@
-```{r}
+```{r, echo = FALSE}
 library(readr)
 library(dplyr)
-data <- read_tsv('/Users/wittphillips/all/igem/iGEM-Shared/ICSPRanalysis/32961-0001-Data.tsv', show_col_types = FALSE)
+library(leaps)
+library(corrplot)
+library(car)
 
-#dim(data)
-#head(data)
+data <- read_tsv('/Users/wittphillips/all/igem/iGEM-Shared/ICSPRanalysis/32961-0001-Data.tsv', show_col_types = FALSE)
 ```
 
 
 ```{r}
-#dim(data)
-#head(data)
-#names(data)
-
 df <- data.frame(data$RACE, data$STATUS10, data$AGE10, data$LANGINT10, #general info
                  #combine below into single access metric
                  data$ESTROG110, # estrogen pills
-                 data$ESTRNJ110, data$ESTRNJ210, #estrogen injections
-                 data$COMBIN110, data$COMBIN210, #estrogen/ progestin combo
-                 data$OHRM_110,  data$OHRM_210, #other hormone treatment
-                 data$OHRM_310,  data$OHRM_410
+                 data$ESTRNJ110, #estrogen injections
+                 data$COMBIN110, #estrogen/ progestin combo
+                 data$OHRM_110
+)
                  
-# reason for taking
-# REDUHAR10
-# OSTEOPO10
-# MENOSYM10
-# YOUNGLK10
-# HCPADVI10
-# FRNADVI1O
-# IMPRMEM1O
-# REGPERI10)
-                 ) 
+# Add reason for taking!
+
 df <- df %>% 
   rename("Race" = "data.RACE"
          , "MenoStatus" = "data.STATUS10"
          , "Age" = "data.AGE10"
-         , "LangInt10" = "data.LANGINT10"
+         , "Language" = "data.LANGINT10"
+         
          , "Estr110" = "data.ESTROG110" # Estrogen since last visit?
          , "EstrInjec110" = "data.ESTRNJ110"
-         , "EstrInjec210" = "data.ESTRNJ210"
          , "EstrProgComb110" = "data.COMBIN110"
-         , "EstrProgComb210" = "data.COMBIN210"
          , "OtherHormone1" = "data.OHRM_110"
-         , "OtherHormone2" = "data.OHRM_210"
-         , "OtherHormone3" = "data.OHRM_310"
-         , "OtherHormone4" = "data.OHRM_410"
          )
 ```
 
 ```{r}
-#recode estrogen **Not working with booleans?**
-#df$Estr110[df$Estr110 == 1] <- "NO"
-#df$Estr110[df$Estr110 == 2] <- "YES"
-
-#df$EstrInjec110[df$EstrInjec110 == 1] <- "NO"
-#df$EstrInjec110[df$EstrInjec110 == 2] <- "YES"
-
-#Composite: Received any kind of HRT?
-
-
-
 #recode race
 df$Race[df$Race == 1] <- "Black/African American"
 df$Race[df$Race == 2] <- "Chinese/Chinese American"
@@ -77,15 +51,50 @@ df$MenoStatus[df$MenoStatus == 6] <- "Pregnant/breastfeeding"
 df$MenoStatus[df$MenoStatus == 7] <- "Unknown due to HT use"
 df$MenoStatus[df$MenoStatus == 8] <- "Unknown due to hysterectomy"
 
-df <- na.omit(df)
+#recode language
+df$Language[df$Language == 1] <- "English"
+df$Language[df$Language == 2] <- "Spanish"
+df$Language[df$Language == 3] <- "Cantonese"
+df$Language[df$Language == 4] <- "Japanese"
 
-colnames
-dim(df)
-head(df)
+df <- na.omit(df)
+```
+
+```{r}
+# Convert to Boolean
+df <- data.frame(lapply(df, function(x) ifelse(x == c(1, -1, -7, -8, -9), FALSE, x)))
+df <- data.frame(lapply(df, function(x) ifelse(x == 2, TRUE, x)))
+logcols <- c("Estr110", "EstrInjec110", "EstrProgComb110", "OtherHormone1")
+df[, logcols] <- lapply(df[, logcols], as.logical)
+
+# Combined Access Score
+df$RecCare = apply(df[, logcols], 1, any)
+
+# Helpful table: one estrogen access metric by race.
+table(df$Estr110, df$Race)
 ```
 ```{r}
-table(df$Estr110, df$Race)
+#Simplified dataframe
+keepcols <- c("Race", "MenoStatus", "Age", "Language", "RecCare")
+df2 <- subset(df, select = keepcols)
+head(df2)
+
+#Least subsets regression
+model <- lm(RecCare ~ ., data = df2)
+#coefficients
+coef(model)
+#p-vals
+summary(model)$coefficients[, "Pr(>|t|)"]
+
+myResPlots2(model, "RecCare")
+
+# Notes:
+# It looks like being white is the most important predictor; Arjan's model should serve to clarify this and get predicted access score.
+```
+
+
+```{r}
+#write file
 write.csv(df, "/Users/wittphillips/all/igem/iGEM-Shared/SWAN_prelim72.csv")
 dim(df)
 ```
-
